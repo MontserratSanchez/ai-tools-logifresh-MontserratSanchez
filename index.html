@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LogiFresh México · Tablero de Desempeño Operativo</title>
+<meta name="description" content="Dashboard operativo LogiFresh México — SLA, incidentes, cadena de frío y reclamaciones. Datos sintéticos, abril–junio 2026.">
+<style>
+:root{
+  --terracota:#B4552D; --terracota-osc:#8A3F20; --terracota-cl:#D98A64;
+  --arena:#F5EDE6; --arena-2:#EDE0D4; --arcilla:#C9A227; --olivo:#6B7B4B;
+  --tinta:#33251E; --tinta-2:#6B5A50; --blanco:#FFFFFF; --linea:#E2D3C6;
+  --ok:#4F7A54; --alerta:#B4552D; --neutro:#A08B7C;
+  --r:10px; --sh:0 1px 2px rgba(51,37,30,.06),0 4px 14px rgba(51,37,30,.05);
+  --f:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:var(--f);color:var(--tinta);background:var(--blanco);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:var(--terracota-osc)}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px}
+.skip{position:absolute;left:-9999px;top:0;background:var(--terracota);color:#fff;padding:10px 16px;z-index:99}
+.skip:focus{left:8px;top:8px}
+:focus-visible{outline:3px solid var(--terracota);outline-offset:2px;border-radius:4px}
+
+/* Header */
+header{background:linear-gradient(160deg,var(--terracota-osc),var(--terracota));color:#fff;padding:26px 0 22px}
+header h1{margin:0;font-size:1.5rem;letter-spacing:-.01em}
+header .sub{margin:6px 0 0;font-size:.9rem;opacity:.93;max-width:70ch}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.meta span{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);padding:4px 10px;border-radius:999px;font-size:.76rem}
+
+/* Filters */
+.filtros{background:var(--arena);border-bottom:1px solid var(--linea);padding:16px 0;position:sticky;top:0;z-index:20}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px;align-items:end}
+.fgrid label{display:block;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--tinta-2);margin-bottom:5px}
+select{width:100%;padding:9px 10px;border:1px solid var(--linea);border-radius:8px;background:#fff;font:inherit;font-size:.88rem;color:var(--tinta)}
+.btn{padding:9px 16px;border:1px solid var(--terracota);background:var(--terracota);color:#fff;border-radius:8px;font:inherit;font-size:.88rem;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--terracota-osc)}
+.chips{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;font-size:.78rem;color:var(--tinta-2);align-items:center}
+.chip{background:#fff;border:1px solid var(--terracota-cl);color:var(--terracota-osc);padding:3px 9px;border-radius:999px}
+.count{font-weight:700;color:var(--tinta)}
+
+/* KPI */
+section{padding:26px 0}
+h2{font-size:1.05rem;margin:0 0 4px;letter-spacing:-.01em}
+.lede{margin:0 0 16px;color:var(--tinta-2);font-size:.85rem;max-width:80ch}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.kpi{background:#fff;border:1px solid var(--linea);border-radius:var(--r);padding:16px;box-shadow:var(--sh);border-top:3px solid var(--terracota-cl)}
+.kpi.k-alert{border-top-color:var(--alerta)}
+.kpi .lab{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--tinta-2);font-weight:700}
+.kpi .val{font-size:1.85rem;font-weight:700;line-height:1.15;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.kpi .un{font-size:.78rem;color:var(--tinta-2)}
+.kpi .note{font-size:.74rem;color:var(--tinta-2);margin-top:7px;border-top:1px dashed var(--linea);padding-top:7px}
+.badge{display:inline-block;font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:999px;margin-left:6px;vertical-align:middle}
+.b-bad{background:#F6E3DB;color:#8A3F20}
+.b-ok{background:#E4EDE4;color:#3D5F41}
+
+/* Meta SLA bar */
+.slabar{margin-top:9px}
+.track{height:9px;background:var(--arena-2);border-radius:999px;position:relative;overflow:visible}
+.fill{height:9px;border-radius:999px;background:var(--terracota);width:0}
+.goal{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--tinta)}
+.goal::after{content:"Meta 90%";position:absolute;left:50%;transform:translateX(-50%);top:-16px;font-size:.62rem;font-weight:700;color:var(--tinta);white-space:nowrap}
+
+/* Cards / charts */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px}
+.card{background:#fff;border:1px solid var(--linea);border-radius:var(--r);padding:16px;box-shadow:var(--sh)}
+.card h3{margin:0 0 3px;font-size:.95rem}
+.card .cap{margin:0 0 12px;font-size:.76rem;color:var(--tinta-2)}
+.chart{width:100%}
+svg{display:block;max-width:100%;height:auto;overflow:visible}
+.gtxt{font-size:11px;fill:var(--tinta-2)}
+.gval{font-size:11px;fill:var(--tinta);font-weight:700}
+.gline{stroke:var(--linea);stroke-width:1}
+.empty{padding:26px 12px;text-align:center;color:var(--tinta-2);font-size:.85rem;background:var(--arena);border:1px dashed var(--linea);border-radius:8px}
+
+/* Table */
+.tw{overflow-x:auto;border:1px solid var(--linea);border-radius:var(--r);background:#fff}
+table{border-collapse:collapse;width:100%;font-size:.83rem;min-width:560px}
+th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--linea);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{background:var(--arena);font-size:.71rem;text-transform:uppercase;letter-spacing:.04em;color:var(--tinta-2);position:sticky;top:0}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--arena)}
+td.num{font-variant-numeric:tabular-nums}
+
+/* HHP panel */
+.hhp{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.hcol{border-radius:var(--r);padding:16px;border:1px solid var(--linea);background:#fff}
+.hcol.h1{background:var(--arena);border-left:4px solid var(--terracota)}
+.hcol.h2c{background:#fff;border-left:4px solid var(--arcilla)}
+.hcol.h3c{background:#fff;border-left:4px solid var(--olivo)}
+.hcol h3{margin:0 0 3px;font-size:.9rem}
+.hcol .tag{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--tinta-2)}
+.hcol ul{margin:10px 0 0;padding-left:18px;font-size:.85rem}
+.hcol li{margin-bottom:9px}
+.ev{display:block;font-size:.72rem;color:var(--tinta-2);margin-top:2px;font-style:italic}
+
+footer{background:var(--arena);border-top:1px solid var(--linea);padding:24px 0;font-size:.8rem;color:var(--tinta-2)}
+footer h3{font-size:.85rem;color:var(--tinta);margin:0 0 6px}
+footer ul{margin:0 0 14px;padding-left:18px}
+footer li{margin-bottom:4px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:620px){
+  header h1{font-size:1.2rem}
+  .kpi .val{font-size:1.5rem}
+  .filtros{position:static}
+  .fgrid{grid-template-columns:1fr 1fr}
+  .btn{width:100%}
+}
+@media print{.filtros{display:none}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Saltar al contenido</a>
+
+<header>
+  <div class="wrap">
+    <h1>LogiFresh México · Tablero de Desempeño Operativo</h1>
+    <p class="sub">Cumplimiento de SLA, incidentes, cadena de frío e impacto económico de embarques refrigerados. Cada cifra se recalcula con los filtros activos.</p>
+    <div class="meta">
+      <span>Periodo: 1 abr – 28 jun 2026</span>
+      <span>240 embarques</span>
+      <span>Fuente: dataset <strong>sintético</strong> de clase</span>
+      <span>Actualizado: 3 sep 2026</span>
+      <span>Moneda: MXN</span>
+    </div>
+  </div>
+</header>
+
+<div class="filtros">
+  <div class="wrap">
+    <form class="fgrid" id="f" aria-label="Filtros del tablero">
+      <div><label for="f_mes">Mes</label><select id="f_mes"></select></div>
+      <div><label for="f_transportista">Transportista</label><select id="f_transportista"></select></div>
+      <div><label for="f_ruta">Tipo de ruta</label><select id="f_ruta"></select></div>
+      <div><label for="f_producto">Producto</label><select id="f_producto"></select></div>
+      <div><label for="f_origen">Origen</label><select id="f_origen"></select></div>
+      <div><label for="f_destino">Destino</label><select id="f_destino"></select></div>
+      <div><label for="f_incidente">Incidente</label><select id="f_incidente"></select></div>
+      <div><label for="f_sla">Estatus SLA</label><select id="f_sla"></select></div>
+      <div><label for="f_reset" class="sr">Restablecer</label><button type="button" class="btn" id="reset">Restablecer</button></div>
+    </form>
+    <div class="chips" id="chips" role="status" aria-live="polite"></div>
+  </div>
+</div>
+
+<main id="main">
+
+<section class="wrap">
+  <h2>Indicadores clave</h2>
+  <p class="lede">Definiciones: <strong>SLA</strong> = embarques marcados “Cumple” ÷ total. <strong>Retraso promedio</strong> = media de <code>retraso_min</code> únicamente sobre embarques con retraso &gt; 0. <strong>Incidentes</strong> = registros con <code>tipo_incidente</code> distinto de “Sin incidente”. <strong>Excursión</strong> = <code>excursion_temp_mayor_8c</code> = “Sí”.</p>
+  <div class="kpis" id="kpis"></div>
+</section>
+
+<section class="wrap">
+  <h2>¿Dónde y cuándo se rompe el servicio?</h2>
+  <p class="lede">El eje temporal es el que discrimina; los cortes por segmento son casi planos por construcción del dataset sintético.</p>
+  <div class="grid2">
+    <div class="card"><h3>Cumplimiento de SLA por mes</h3><p class="cap">% de embarques que cumplen. Línea punteada = meta 90%.</p><div id="c_mes" class="chart"></div></div>
+    <div class="card"><h3>SLA por transportista</h3><p class="cap">% de cumplimiento. Barras ordenadas de menor a mayor.</p><div id="c_transp" class="chart"></div></div>
+    <div class="card"><h3>Distribución del retraso (solo tardíos)</h3><p class="cap">Número de embarques por rango de minutos de retraso.</p><div id="c_hist" class="chart"></div></div>
+    <div class="card"><h3>Frecuencia de incidentes por tipo</h3><p class="cap">Conteo de registros. La frecuencia no implica causalidad del retraso.</p><div id="c_inc" class="chart"></div></div>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2>Cadena de frío e impacto económico</h2>
+  <div class="grid2">
+    <div class="card"><h3>Temperatura máxima por embarque</h3><p class="cap">Cada punto es un embarque. Línea roja = umbral de 8 °C.</p><div id="c_temp" class="chart"></div></div>
+    <div class="card"><h3>Concentración de reclamaciones</h3><p class="cap">Monto acumulado (MXN) ordenado de mayor a menor embarque.</p><div id="c_pareto" class="chart"></div></div>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2>Detalle por transportista</h2>
+  <p class="lede">Tabla ejecutiva recalculada con los filtros activos. Ordenada por reclamaciones descendente.</p>
+  <div class="tw" id="tabla"></div>
+</section>
+
+<section class="wrap">
+  <h2>Hechos · Hipótesis · Próximo paso</h2>
+  <p class="lede">Panel fijo, no recalculado por filtros: se basa en el dataset completo. Los <em>hechos</em> están medidos; las <em>hipótesis</em> no están probadas con estos datos.</p>
+  <div class="hhp">
+    <div class="hcol h1">
+      <span class="tag">Hechos (medidos)</span><h3>Lo que los datos sí muestran</h3>
+      <ul>
+        <li>El SLA global es <strong>76.7%</strong>, <strong>13.3 puntos por debajo de la meta de 90%</strong>.<span class="ev">Evidencia: campo <code>sla_entrega</code>; 184 “Cumple” / 240.</span></li>
+        <li><strong>Los 56 incumplimientos ocurren todos en junio 2026.</strong> Abril y mayo cierran en 100%; junio en 30%.<span class="ev">Evidencia: <code>sla_entrega</code> × <code>fecha_salida</code>, corte mensual.</span></li>
+        <li><strong>15 embarques (6.3%) concentran el 100% de las reclamaciones</strong>; los 5 mayores suman el 67.2% del monto.<span class="ev">Evidencia: <code>reclamacion_mxn</code> &gt; 0; total $882,549.</span></li>
+        <li>Las <strong>9 excursiones &gt;8 °C cumplieron SLA</strong> y 8 de ellas no generaron reclamación.<span class="ev">Evidencia: cruce <code>excursion_temp_mayor_8c</code> × <code>sla_entrega</code>.</span></li>
+        <li>La satisfacción es <strong>8.5/10 tanto en “Cumple” como en “No cumple”</strong> (correlación retraso–satisfacción ≈ 0.00).<span class="ev">Evidencia: <code>satisfaccion_1_10</code> agrupada por <code>sla_entrega</code>.</span></li>
+      </ul>
+    </div>
+    <div class="hcol h2c">
+      <span class="tag">Hipótesis (por validar)</span><h3>Lo que aún no está probado</h3>
+      <ul>
+        <li><strong>H1 — Cambio de régimen en junio.</strong> El salto de 100% a 30% sugiere un evento discreto (cambio de proceso, de proveedor, estacionalidad o error de captura), no una degradación gradual. <span class="ev">No demostrado: el dataset no contiene variables de proceso, personal ni clima.</span></li>
+        <li><strong>H2 — Los incidentes registrados no son la causa del retraso.</strong> Los 52 incidentes tienen 100% de cumplimiento de SLA, mientras los 188 embarques “Sin incidente” cumplen 70.2%. <span class="ev">No demostrado: puede indicar un sesgo de registro (el incidente se documenta solo cuando alguien lo atiende) más que una relación real.</span></li>
+      </ul>
+      <p class="cap" style="margin-top:12px"><strong>Advertencia:</strong> asociación ≠ causalidad. Ninguna cifra de este tablero identifica una causa.</p>
+    </div>
+    <div class="hcol h3c">
+      <span class="tag">Próximo paso</span><h3>Piloto de 30 días</h3>
+      <ul>
+        <li><strong>Auditoría de junio + control de embarques de alto valor.</strong> (1) Reconstruir con registros primarios qué cambió el 1 de junio; (2) aplicar checklist reforzado y confirmación de ventana a los embarques del percentil superior de valor declarado.</li>
+        <li><strong>Indicadores de seguimiento semanal:</strong> % SLA semanal (meta ≥ 90%), nº de incumplimientos, monto de reclamación semanal y % de embarques de alto valor con checklist completo.</li>
+        <li><strong>Criterio de éxito a 30 días:</strong> SLA semanal ≥ 90% en las últimas 2 semanas y cero reclamaciones &gt; $100,000 MXN.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <h3>Limitaciones y alcance</h3>
+    <ul>
+      <li><strong>Datos sintéticos con fines didácticos.</strong> No representan operaciones reales de ninguna empresa y no deben usarse para decisiones de negocio.</li>
+      <li>El dataset está <strong>balanceado por diseño</strong>: transportista, producto, ruta, origen y destino muestran un SLA prácticamente idéntico (~76.7%), por lo que los cortes por segmento no discriminan desempeño.</li>
+      <li>Las 9 excursiones de temperatura corresponden a IDs consecutivos (LF-0027 a LF-0035), lo que sugiere un <strong>bloque generado artificialmente</strong> y no un patrón operativo.</li>
+      <li><strong>Discrepancia de control documentada:</strong> la suma real de <code>reclamacion_mxn</code> es <strong>$882,549</strong>; la hoja “Diccionario_y_control” del archivo fuente indica $882,649 (diferencia de $100). El tablero muestra el valor calculado desde los datos.</li>
+      <li>No hay valores faltantes ni IDs duplicados en las 240 filas. No se incluye ningún dato personal.</li>
+      <li>Faltan variables para explicar el quiebre de junio: causa raíz del incidente, conductor, clima, hora de llegada real y política de SLA por cliente.</li>
+    </ul>
+    <p>Fuente: <code>Datos_sinteticos_LogiFresh_dashboard.xlsx</code>, hoja <code>Datos</code> (240 registros). Periodo abril–junio 2026. Montos en pesos mexicanos (MXN). Actualizado el 3 de septiembre de 2026.</p>
+  </div>
+</footer>
+
+<script>
+const DATA = {"cols":["id_embarque","fecha_salida","unidad","origen","destino","producto","transportista","horas_transito","sla_entrega","retraso_min","tipo_incidente","excursion_temp_mayor_8c","temperatura_max_c","reclamacion_mxn","satisfaccion_1_10","distancia_km","ocupacion_unidad","tipo_ruta"],"rows":[["LF-0001","2026-04-01","U-01","CDMX","Mérida","Lácteos","Norte",6,"Cumple",0.0,"Falla mecánica","No",3.2,0,8,520,0.82,"Prioritaria"],["LF-0002","2026-04-02","U-02","Guadalajara","Toluca","Congelados","Centro",7,"Cumple",0.0,"Falla mecánica","No",3.6,0,9,657,0.93,"Estándar"],["LF-0003","2026-04-03","U-03","Monterrey","Chihuahua","Preparados","Pacífico",8,"Cumple",0.0,"Falla mecánica","No",3.9,145000,8,794,0.87,"Consolidada"],["LF-0004","2026-04-04","U-04","Puebla","Tijuana","Cárnicos","Sureste",9,"Cumple",0.0,"Falla mecánica","No",4.3,0,9,931,0.98,"Prioritaria"],["LF-0005","2026-04-05","U-05","Querétaro","Cancún","Berries","Norte",10,"Cumple",0.0,"Falla mecánica","No",4.6,0,8,1068,0.92,"Estándar"],["LF-0006","2026-04-06","U-06","León","Hermosillo","Lácteos","Centro",11,"Cumple",0.0,"Falla mecánica","No",5.0,0,9,1205,0.86,"Consolidada"],["LF-0007","2026-04-07","U-07","CDMX","Veracruz","Congelados","Pacífico",12,"Cumple",0.0,"Falla mecánica","No",5.3,0,8,1342,0.97,"Prioritaria"],["LF-0008","2026-04-08","U-08","Guadalajara","San Luis Potosí","Preparados","Sureste",13,"Cumple",0.0,"Falla mecánica","No",5.7,132500,9,1479,0.91,"Estándar"],["LF-0009","2026-04-09","U-09","Monterrey","Mérida","Cárnicos","Norte",14,"Cumple",0.0,"Falla mecánica","No",6.0,0,8,1616,0.85,"Consolidada"],["LF-0010","2026-04-10","U-10","Puebla","Toluca","Berries","Centro",15,"Cumple",0.0,"Falla mecánica","No",3.2,0,9,1753,0.96,"Prioritaria"],["LF-0011","2026-04-11","U-11","Querétaro","Chihuahua","Lácteos","Pacífico",16,"Cumple",0.0,"Falla mecánica","No",3.6,0,8,1890,0.9,"Estándar"],["LF-0012","2026-04-12","U-12","León","Tijuana","Congelados","Sureste",17,"Cumple",0.0,"Falla mecánica","No",3.9,0,9,2027,0.84,"Consolidada"],["LF-0013","2026-04-13","U-13","CDMX","Cancún","Preparados","Norte",18,"Cumple",0.0,"Falla mecánica","No",4.3,0,8,2164,0.95,"Prioritaria"],["LF-0014","2026-04-14","U-14","Guadalajara","Hermosillo","Cárnicos","Centro",19,"Cumple",0.0,"Falla mecánica","No",4.6,118750,9,2301,0.89,"Estándar"],["LF-0015","2026-04-15","U-15","Monterrey","Veracruz","Berries","Pacífico",20,"Cumple",0.0,"Ventana de entrega","No",5.0,0,8,2438,0.83,"Consolidada"],["LF-0016","2026-04-16","U-16","Puebla","San Luis Potosí","Lácteos","Sureste",21,"Cumple",0.0,"Ventana de entrega","No",5.3,0,9,2575,0.94,"Prioritaria"],["LF-0017","2026-04-17","U-17","Querétaro","Mérida","Congelados","Norte",22,"Cumple",0.0,"Ventana de entrega","No",5.7,0,8,2712,0.88,"Estándar"],["LF-0018","2026-04-18","U-18","León","Toluca","Preparados","Centro",23,"Cumple",0.0,"Ventana de entrega","No",6.0,0,9,2849,0.82,"Consolidada"],["LF-0019","2026-04-19","U-19","CDMX","Chihuahua","Cárnicos","Pacífico",24,"Cumple",0.0,"Ventana de entrega","No",3.2,0,8,2986,0.93,"Prioritaria"],["LF-0020","2026-04-20","U-20","Guadalajara","Tijuana","Berries","Sureste",6,"Cumple",0.0,"Ventana de entrega","No",3.6,0,9,643,0.87,"Estándar"],["LF-0021","2026-04-21","U-21","Monterrey","Cancún","Lácteos","Norte",7,"Cumple",0.0,"Ventana de entrega","No",3.9,0,8,780,0.98,"Consolidada"],["LF-0022","2026-04-22","U-22","Puebla","Hermosillo","Congelados","Centro",8,"Cumple",0.0,"Ventana de entrega","No",4.3,104400,9,917,0.92,"Prioritaria"],["LF-0023","2026-04-23","U-23","Querétaro","Veracruz","Preparados","Pacífico",9,"Cumple",0.0,"Ventana de entrega","No",4.6,0,8,1054,0.86,"Estándar"],["LF-0024","2026-04-24","U-24","León","San Luis Potosí","Cárnicos","Sureste",10,"Cumple",0.0,"Ventana de entrega","No",5.0,0,9,1191,0.97,"Consolidada"],["LF-0025","2026-04-25","U-25","CDMX","Mérida","Berries","Norte",11,"Cumple",0.0,"Ventana de entrega","No",5.3,0,8,1328,0.91,"Prioritaria"],["LF-0026","2026-04-26","U-26","Guadalajara","Toluca","Lácteos","Centro",12,"Cumple",0.0,"Ventana de entrega","No",5.7,0,9,1465,0.85,"Estándar"],["LF-0027","2026-04-27","U-27","Monterrey","Chihuahua","Congelados","Pacífico",13,"Cumple",0.0,"Temperatura","Sí",11.4,0,8,1602,0.96,"Consolidada"],["LF-0028","2026-04-28","U-28","Puebla","Tijuana","Preparados","Sureste",14,"Cumple",0.0,"Temperatura","Sí",12.0,0,9,1739,0.9,"Prioritaria"],["LF-0029","2026-04-01","U-29","Querétaro","Cancún","Cárnicos","Norte",15,"Cumple",0.0,"Temperatura","Sí",8.4,0,8,1876,0.84,"Estándar"],["LF-0030","2026-04-02","U-30","León","Hermosillo","Berries","Centro",16,"Cumple",0.0,"Temperatura","Sí",9.0,0,9,2013,0.95,"Consolidada"],["LF-0031","2026-04-03","U-31","CDMX","Veracruz","Lácteos","Pacífico",17,"Cumple",0.0,"Temperatura","Sí",9.6,0,8,2150,0.89,"Prioritaria"],["LF-0032","2026-04-04","U-32","Guadalajara","San Luis Potosí","Congelados","Sureste",18,"Cumple",0.0,"Temperatura","Sí",10.2,0,9,2287,0.83,"Estándar"],["LF-0033","2026-04-05","U-33","Monterrey","Mérida","Preparados","Norte",19,"Cumple",0.0,"Temperatura","Sí",10.8,0,8,2424,0.94,"Consolidada"],["LF-0034","2026-04-06","U-34","Puebla","Toluca","Cárnicos","Centro",20,"Cumple",0.0,"Temperatura","Sí",11.4,0,9,2561,0.88,"Prioritaria"],["LF-0035","2026-04-07","U-35","Querétaro","Chihuahua","Berries","Pacífico",21,"Cumple",0.0,"Temperatura","Sí",12.0,92300,8,2698,0.82,"Estándar"],["LF-0036","2026-04-08","U-36","León","Tijuana","Lácteos","Sureste",22,"Cumple",0.0,"Documentación","No",6.0,0,9,2835,0.93,"Consolidada"],["LF-0037","2026-04-09","U-37","CDMX","Cancún","Congelados","Norte",23,"Cumple",0.0,"Documentación","No",3.2,0,8,2972,0.87,"Prioritaria"],["LF-0038","2026-04-10","U-38","Guadalajara","Hermosillo","Preparados","Centro",24,"Cumple",0.0,"Documentación","No",3.6,0,9,629,0.98,"Estándar"],["LF-0039","2026-04-11","U-01","Monterrey","Veracruz","Cárnicos","Pacífico",6,"Cumple",0.0,"Documentación","No",3.9,0,8,766,0.92,"Consolidada"],["LF-0040","2026-04-12","U-02","Puebla","San Luis Potosí","Berries","Sureste",7,"Cumple",0.0,"Documentación","No",4.3,0,9,903,0.86,"Prioritaria"],["LF-0041","2026-04-13","U-03","Querétaro","Mérida","Lácteos","Norte",8,"Cumple",0.0,"Documentación","No",4.6,0,8,1040,0.97,"Estándar"],["LF-0042","2026-04-14","U-04","León","Toluca","Congelados","Centro",9,"Cumple",0.0,"Documentación","No",5.0,0,9,1177,0.91,"Consolidada"],["LF-0043","2026-04-15","U-05","CDMX","Chihuahua","Preparados","Pacífico",10,"Cumple",0.0,"Documentación","No",5.3,0,8,1314,0.85,"Prioritaria"],["LF-0044","2026-04-16","U-06","Guadalajara","Tijuana","Cárnicos","Sureste",11,"Cumple",0.0,"Documentación","No",5.7,0,9,1451,0.96,"Estándar"],["LF-0045","2026-04-17","U-07","Monterrey","Cancún","Berries","Norte",12,"Cumple",0.0,"Tráfico","No",6.0,0,8,1588,0.9,"Consolidada"],["LF-0046","2026-04-18","U-08","Puebla","Hermosillo","Lácteos","Centro",13,"Cumple",0.0,"Tráfico","No",3.2,0,9,1725,0.84,"Prioritaria"],["LF-0047","2026-04-19","U-09","Querétaro","Veracruz","Congelados","Pacífico",14,"Cumple",0.0,"Tráfico","No",3.6,0,8,1862,0.95,"Estándar"],["LF-0048","2026-04-20","U-10","León","San Luis Potosí","Preparados","Sureste",15,"Cumple",0.0,"Tráfico","No",3.9,0,9,1999,0.89,"Consolidada"],["LF-0049","2026-04-21","U-11","CDMX","Mérida","Cárnicos","Norte",16,"Cumple",0.0,"Tráfico","No",4.3,74500,8,2136,0.83,"Prioritaria"],["LF-0050","2026-04-22","U-12","Guadalajara","Toluca","Berries","Centro",17,"Cumple",0.0,"Tráfico","No",4.6,0,9,2273,0.94,"Estándar"],["LF-0051","2026-04-23","U-13","Monterrey","Chihuahua","Lácteos","Pacífico",18,"Cumple",0.0,"Tráfico","No",5.0,0,8,2410,0.88,"Consolidada"],["LF-0052","2026-04-24","U-14","Puebla","Tijuana","Congelados","Sureste",19,"Cumple",0.0,"Tráfico","No",5.3,0,9,2547,0.82,"Prioritaria"],["LF-0053","2026-04-25","U-15","Querétaro","Cancún","Preparados","Norte",20,"Cumple",0.0,"Sin incidente","No",5.7,0,8,2684,0.93,"Estándar"],["LF-0054","2026-04-26","U-16","León","Hermosillo","Cárnicos","Centro",21,"Cumple",0.0,"Sin incidente","No",6.0,0,9,2821,0.87,"Consolidada"],["LF-0055","2026-04-27","U-17","CDMX","Veracruz","Berries","Pacífico",22,"Cumple",0.0,"Sin incidente","No",3.2,0,8,2958,0.98,"Prioritaria"],["LF-0056","2026-04-28","U-18","Guadalajara","San Luis Potosí","Lácteos","Sureste",23,"Cumple",0.0,"Sin incidente","No",3.6,0,9,615,0.92,"Estándar"],["LF-0057","2026-04-01","U-19","Monterrey","Mérida","Congelados","Norte",24,"Cumple",0.0,"Sin incidente","No",3.9,0,8,752,0.86,"Consolidada"],["LF-0058","2026-04-02","U-20","Puebla","Toluca","Preparados","Centro",6,"Cumple",0.0,"Sin incidente","No",4.3,0,9,889,0.97,"Prioritaria"],["LF-0059","2026-04-03","U-21","Querétaro","Chihuahua","Cárnicos","Pacífico",7,"Cumple",0.0,"Sin incidente","No",4.6,0,8,1026,0.91,"Estándar"],["LF-0060","2026-04-04","U-22","León","Tijuana","Berries","Sureste",8,"Cumple",0.0,"Sin incidente","No",5.0,0,9,1163,0.85,"Consolidada"],["LF-0061","2026-04-05","U-23","CDMX","Cancún","Lácteos","Norte",9,"Cumple",0.0,"Sin incidente","No",5.3,0,8,1300,0.96,"Prioritaria"],["LF-0062","2026-04-06","U-24","Guadalajara","Hermosillo","Congelados","Centro",10,"Cumple",0.0,"Sin incidente","No",5.7,52600,9,1437,0.9,"Estándar"],["LF-0063","2026-04-07","U-25","Monterrey","Veracruz","Preparados","Pacífico",11,"Cumple",0.0,"Sin incidente","No",6.0,0,8,1574,0.84,"Consolidada"],["LF-0064","2026-04-08","U-26","Puebla","San Luis Potosí","Cárnicos","Sureste",12,"Cumple",0.0,"Sin incidente","No",3.2,0,9,1711,0.95,"Prioritaria"],["LF-0065","2026-04-09","U-27","Querétaro","Mérida","Berries","Norte",13,"Cumple",0.0,"Sin incidente","No",3.6,0,8,1848,0.89,"Estándar"],["LF-0066","2026-04-10","U-28","León","Toluca","Lácteos","Centro",14,"Cumple",0.0,"Sin incidente","No",3.9,0,9,1985,0.83,"Consolidada"],["LF-0067","2026-04-11","U-29","CDMX","Chihuahua","Congelados","Pacífico",15,"Cumple",0.0,"Sin incidente","No",4.3,0,8,2122,0.94,"Prioritaria"],["LF-0068","2026-04-12","U-30","Guadalajara","Tijuana","Preparados","Sureste",16,"Cumple",0.0,"Sin incidente","No",4.6,0,9,2259,0.88,"Estándar"],["LF-0069","2026-04-13","U-31","Monterrey","Cancún","Cárnicos","Norte",17,"Cumple",0.0,"Sin incidente","No",5.0,0,8,2396,0.82,"Consolidada"],["LF-0070","2026-04-14","U-32","Puebla","Hermosillo","Berries","Centro",18,"Cumple",0.0,"Sin incidente","No",5.3,0,9,2533,0.93,"Prioritaria"],["LF-0071","2026-04-15","U-33","Querétaro","Veracruz","Lácteos","Pacífico",19,"Cumple",0.0,"Sin incidente","No",5.7,0,8,2670,0.87,"Estándar"],["LF-0072","2026-04-16","U-34","León","San Luis Potosí","Congelados","Sureste",20,"Cumple",0.0,"Sin incidente","No",6.0,0,9,2807,0.98,"Consolidada"],["LF-0073","2026-04-17","U-35","CDMX","Mérida","Preparados","Norte",21,"Cumple",0.0,"Sin incidente","No",3.2,0,8,2944,0.92,"Prioritaria"],["LF-0074","2026-04-18","U-36","Guadalajara","Toluca","Cárnicos","Centro",22,"Cumple",0.0,"Sin incidente","No",3.6,0,9,601,0.86,"Estándar"],["LF-0075","2026-04-19","U-37","Monterrey","Chihuahua","Berries","Pacífico",23,"Cumple",0.0,"Sin incidente","No",3.9,0,8,738,0.97,"Consolidada"],["LF-0076","2026-04-20","U-38","Puebla","Tijuana","Lácteos","Sureste",24,"Cumple",0.0,"Sin incidente","No",4.3,0,9,875,0.91,"Prioritaria"],["LF-0077","2026-04-21","U-01","Querétaro","Cancún","Congelados","Norte",6,"Cumple",0.0,"Sin incidente","No",4.6,0,8,1012,0.85,"Estándar"],["LF-0078","2026-04-22","U-02","León","Hermosillo","Preparados","Centro",7,"Cumple",0.0,"Sin incidente","No",5.0,42100,9,1149,0.96,"Consolidada"],["LF-0079","2026-04-23","U-03","CDMX","Veracruz","Cárnicos","Pacífico",8,"Cumple",0.0,"Sin incidente","No",5.3,0,8,1286,0.9,"Prioritaria"],["LF-0080","2026-04-24","U-04","Guadalajara","San Luis Potosí","Berries","Sureste",9,"Cumple",0.0,"Sin incidente","No",5.7,0,9,1423,0.84,"Estándar"],["LF-0081","2026-05-25","U-05","Monterrey","Mérida","Lácteos","Norte",10,"Cumple",0.0,"Sin incidente","No",6.0,0,8,1560,0.95,"Consolidada"],["LF-0082","2026-05-26","U-06","Puebla","Toluca","Congelados","Centro",11,"Cumple",0.0,"Sin incidente","No",3.2,0,9,1697,0.89,"Prioritaria"],["LF-0083","2026-05-27","U-07","Querétaro","Chihuahua","Preparados","Pacífico",12,"Cumple",0.0,"Sin incidente","No",3.6,0,8,1834,0.83,"Estándar"],["LF-0084","2026-05-28","U-08","León","Tijuana","Cárnicos","Sureste",13,"Cumple",0.0,"Sin incidente","No",3.9,0,9,1971,0.94,"Consolidada"],["LF-0085","2026-05-01","U-09","CDMX","Cancún","Berries","Norte",14,"Cumple",0.0,"Sin incidente","No",4.3,0,8,2108,0.88,"Prioritaria"],["LF-0086","2026-05-02","U-10","Guadalajara","Hermosillo","Lácteos","Centro",15,"Cumple",0.0,"Sin incidente","No",4.6,0,9,2245,0.82,"Estándar"],["LF-0087","2026-05-03","U-11","Monterrey","Veracruz","Congelados","Pacífico",16,"Cumple",0.0,"Sin incidente","No",5.0,0,8,2382,0.93,"Consolidada"],["LF-0088","2026-05-04","U-12","Puebla","San Luis Potosí","Preparados","Sureste",17,"Cumple",0.0,"Sin incidente","No",5.3,0,9,2519,0.87,"Prioritaria"],["LF-0089","2026-05-05","U-13","Querétaro","Mérida","Cárnicos","Norte",18,"Cumple",0.0,"Sin incidente","No",5.7,0,8,2656,0.98,"Estándar"],["LF-0090","2026-05-06","U-14","León","Toluca","Berries","Centro",19,"Cumple",0.0,"Sin incidente","No",6.0,0,9,2793,0.92,"Consolidada"],["LF-0091","2026-05-07","U-15","CDMX","Chihuahua","Lácteos","Pacífico",20,"Cumple",0.0,"Sin incidente","No",3.2,0,8,2930,0.86,"Prioritaria"],["LF-0092","2026-05-08","U-16","Guadalajara","Tijuana","Congelados","Sureste",21,"Cumple",0.0,"Sin incidente","No",3.6,0,9,587,0.97,"Estándar"],["LF-0093","2026-05-09","U-17","Monterrey","Cancún","Preparados","Norte",22,"Cumple",0.0,"Sin incidente","No",3.9,33800,8,724,0.91,"Consolidada"],["LF-0094","2026-05-10","U-18","Puebla","Hermosillo","Cárnicos","Centro",23,"Cumple",0.0,"Sin incidente","No",4.3,0,9,861,0.85,"Prioritaria"],["LF-0095","2026-05-11","U-19","Querétaro","Veracruz","Berries","Pacífico",24,"Cumple",0.0,"Sin incidente","No",4.6,0,8,998,0.96,"Estándar"],["LF-0096","2026-05-12","U-20","León","San Luis Potosí","Lácteos","Sureste",6,"Cumple",0.0,"Sin incidente","No",5.0,0,9,1135,0.9,"Consolidada"],["LF-0097","2026-05-13","U-21","CDMX","Mérida","Congelados","Norte",7,"Cumple",0.0,"Sin incidente","No",5.3,0,8,1272,0.84,"Prioritaria"],["LF-0098","2026-05-14","U-22","Guadalajara","Toluca","Preparados","Centro",8,"Cumple",0.0,"Sin incidente","No",5.7,0,9,1409,0.95,"Estándar"],["LF-0099","2026-05-15","U-23","Monterrey","Chihuahua","Cárnicos","Pacífico",9,"Cumple",0.0,"Sin incidente","No",6.0,0,8,1546,0.89,"Consolidada"],["LF-0100","2026-05-16","U-24","Puebla","Tijuana","Berries","Sureste",10,"Cumple",0.0,"Sin incidente","No",3.2,0,9,1683,0.83,"Prioritaria"],["LF-0101","2026-05-17","U-25","Querétaro","Cancún","Lácteos","Norte",11,"Cumple",0.0,"Sin incidente","No",3.6,0,8,1820,0.94,"Estándar"],["LF-0102","2026-05-18","U-26","León","Hermosillo","Congelados","Centro",12,"Cumple",0.0,"Sin incidente","No",3.9,0,9,1957,0.88,"Consolidada"],["LF-0103","2026-05-19","U-27","CDMX","Veracruz","Preparados","Pacífico",13,"Cumple",0.0,"Sin incidente","No",4.3,0,8,2094,0.82,"Prioritaria"],["LF-0104","2026-05-20","U-28","Guadalajara","San Luis Potosí","Cárnicos","Sureste",14,"Cumple",0.0,"Sin incidente","No",4.6,0,9,2231,0.93,"Estándar"],["LF-0105","2026-05-21","U-29","Monterrey","Mérida","Berries","Norte",15,"Cumple",0.0,"Sin incidente","No",5.0,0,8,2368,0.87,"Consolidada"],["LF-0106","2026-05-22","U-30","Puebla","Toluca","Lácteos","Centro",16,"Cumple",0.0,"Sin incidente","No",5.3,0,9,2505,0.98,"Prioritaria"],["LF-0107","2026-05-23","U-31","Querétaro","Chihuahua","Congelados","Pacífico",17,"Cumple",0.0,"Sin incidente","No",5.7,0,8,2642,0.92,"Estándar"],["LF-0108","2026-05-24","U-32","León","Tijuana","Preparados","Sureste",18,"Cumple",0.0,"Sin incidente","No",6.0,0,9,2779,0.86,"Consolidada"],["LF-0109","2026-05-25","U-33","CDMX","Cancún","Cárnicos","Norte",19,"Cumple",0.0,"Sin incidente","No",3.2,0,8,2916,0.97,"Prioritaria"],["LF-0110","2026-05-26","U-34","Guadalajara","Hermosillo","Berries","Centro",20,"Cumple",0.0,"Sin incidente","No",3.6,27100,9,573,0.91,"Estándar"],["LF-0111","2026-05-27","U-35","Monterrey","Veracruz","Lácteos","Pacífico",21,"Cumple",0.0,"Sin incidente","No",3.9,0,8,710,0.85,"Consolidada"],["LF-0112","2026-05-28","U-36","Puebla","San Luis Potosí","Congelados","Sureste",22,"Cumple",0.0,"Sin incidente","No",4.3,0,9,847,0.96,"Prioritaria"],["LF-0113","2026-05-01","U-37","Querétaro","Mérida","Preparados","Norte",23,"Cumple",0.0,"Sin incidente","No",4.6,0,8,984,0.9,"Estándar"],["LF-0114","2026-05-02","U-38","León","Toluca","Cárnicos","Centro",24,"Cumple",0.0,"Sin incidente","No",5.0,0,9,1121,0.84,"Consolidada"],["LF-0115","2026-05-03","U-01","CDMX","Chihuahua","Berries","Pacífico",6,"Cumple",0.0,"Sin incidente","No",5.3,0,8,1258,0.95,"Prioritaria"],["LF-0116","2026-05-04","U-02","Guadalajara","Tijuana","Lácteos","Sureste",7,"Cumple",0.0,"Sin incidente","No",5.7,0,9,1395,0.89,"Estándar"],["LF-0117","2026-05-05","U-03","Monterrey","Cancún","Congelados","Norte",8,"Cumple",0.0,"Sin incidente","No",6.0,0,8,1532,0.83,"Consolidada"],["LF-0118","2026-05-06","U-04","Puebla","Hermosillo","Preparados","Centro",9,"Cumple",0.0,"Sin incidente","No",3.2,0,9,1669,0.94,"Prioritaria"],["LF-0119","2026-05-07","U-05","Querétaro","Veracruz","Cárnicos","Pacífico",10,"Cumple",0.0,"Sin incidente","No",3.6,0,8,1806,0.88,"Estándar"],["LF-0120","2026-05-08","U-06","León","San Luis Potosí","Berries","Sureste",11,"Cumple",0.0,"Sin incidente","No",3.9,0,9,1943,0.82,"Consolidada"],["LF-0121","2026-05-09","U-07","CDMX","Mérida","Lácteos","Norte",12,"Cumple",0.0,"Sin incidente","No",4.3,0,8,2080,0.93,"Prioritaria"],["LF-0122","2026-05-10","U-08","Guadalajara","Toluca","Congelados","Centro",13,"Cumple",0.0,"Sin incidente","No",4.6,0,9,2217,0.87,"Estándar"],["LF-0123","2026-05-11","U-09","Monterrey","Chihuahua","Preparados","Pacífico",14,"Cumple",0.0,"Sin incidente","No",5.0,0,8,2354,0.98,"Consolidada"],["LF-0124","2026-05-12","U-10","Puebla","Tijuana","Cárnicos","Sureste",15,"Cumple",0.0,"Sin incidente","No",5.3,0,9,2491,0.92,"Prioritaria"],["LF-0125","2026-05-13","U-11","Querétaro","Cancún","Berries","Norte",16,"Cumple",0.0,"Sin incidente","No",5.7,0,8,2628,0.86,"Estándar"],["LF-0126","2026-05-14","U-12","León","Hermosillo","Lácteos","Centro",17,"Cumple",0.0,"Sin incidente","No",6.0,0,9,2765,0.97,"Consolidada"],["LF-0127","2026-05-15","U-13","CDMX","Veracruz","Congelados","Pacífico",18,"Cumple",0.0,"Sin incidente","No",3.2,22100,8,2902,0.91,"Prioritaria"],["LF-0128","2026-05-16","U-14","Guadalajara","San Luis Potosí","Preparados","Sureste",19,"Cumple",0.0,"Sin incidente","No",3.6,0,9,559,0.85,"Estándar"],["LF-0129","2026-05-17","U-15","Monterrey","Mérida","Cárnicos","Norte",20,"Cumple",0.0,"Sin incidente","No",3.9,0,8,696,0.96,"Consolidada"],["LF-0130","2026-05-18","U-16","Puebla","Toluca","Berries","Centro",21,"Cumple",0.0,"Sin incidente","No",4.3,0,9,833,0.9,"Prioritaria"],["LF-0131","2026-05-19","U-17","Querétaro","Chihuahua","Lácteos","Pacífico",22,"Cumple",0.0,"Sin incidente","No",4.6,0,8,970,0.84,"Estándar"],["LF-0132","2026-05-20","U-18","León","Tijuana","Congelados","Sureste",23,"Cumple",0.0,"Sin incidente","No",5.0,0,9,1107,0.95,"Consolidada"],["LF-0133","2026-05-21","U-19","CDMX","Cancún","Preparados","Norte",24,"Cumple",0.0,"Sin incidente","No",5.3,0,8,1244,0.89,"Prioritaria"],["LF-0134","2026-05-22","U-20","Guadalajara","Hermosillo","Cárnicos","Centro",6,"Cumple",0.0,"Sin incidente","No",5.7,0,9,1381,0.83,"Estándar"],["LF-0135","2026-05-23","U-21","Monterrey","Veracruz","Berries","Pacífico",7,"Cumple",0.0,"Sin incidente","No",6.0,0,8,1518,0.94,"Consolidada"],["LF-0136","2026-05-24","U-22","Puebla","San Luis Potosí","Lácteos","Sureste",8,"Cumple",0.0,"Sin incidente","No",3.2,0,9,1655,0.88,"Prioritaria"],["LF-0137","2026-05-25","U-23","Querétaro","Mérida","Congelados","Norte",9,"Cumple",0.0,"Sin incidente","No",3.6,0,8,1792,0.82,"Estándar"],["LF-0138","2026-05-26","U-24","León","Toluca","Preparados","Centro",10,"Cumple",0.0,"Sin incidente","No",3.9,0,9,1929,0.93,"Consolidada"],["LF-0139","2026-05-27","U-25","CDMX","Chihuahua","Cárnicos","Pacífico",11,"Cumple",0.0,"Sin incidente","No",4.3,0,8,2066,0.87,"Prioritaria"],["LF-0140","2026-05-28","U-26","Guadalajara","Tijuana","Berries","Sureste",12,"Cumple",0.0,"Sin incidente","No",4.6,0,9,2203,0.98,"Estándar"],["LF-0141","2026-05-01","U-27","Monterrey","Cancún","Lácteos","Norte",13,"Cumple",0.0,"Sin incidente","No",5.0,0,8,2340,0.92,"Consolidada"],["LF-0142","2026-05-02","U-28","Puebla","Hermosillo","Congelados","Centro",14,"Cumple",0.0,"Sin incidente","No",5.3,0,9,2477,0.86,"Prioritaria"],["LF-0143","2026-05-03","U-29","Querétaro","Veracruz","Preparados","Pacífico",15,"Cumple",0.0,"Sin incidente","No",5.7,0,8,2614,0.97,"Estándar"],["LF-0144","2026-05-04","U-30","León","San Luis Potosí","Cárnicos","Sureste",16,"Cumple",0.0,"Sin incidente","No",6.0,0,9,2751,0.91,"Consolidada"],["LF-0145","2026-05-05","U-31","CDMX","Mérida","Berries","Norte",17,"Cumple",0.0,"Sin incidente","No",3.2,0,8,2888,0.85,"Prioritaria"],["LF-0146","2026-05-06","U-32","Guadalajara","Toluca","Lácteos","Centro",18,"Cumple",0.0,"Sin incidente","No",3.6,16100,9,545,0.96,"Estándar"],["LF-0147","2026-05-07","U-33","Monterrey","Chihuahua","Congelados","Pacífico",19,"Cumple",0.0,"Sin incidente","No",3.9,0,8,682,0.9,"Consolidada"],["LF-0148","2026-05-08","U-34","Puebla","Tijuana","Preparados","Sureste",20,"Cumple",0.0,"Sin incidente","No",4.3,0,9,819,0.84,"Prioritaria"],["LF-0149","2026-05-09","U-35","Querétaro","Cancún","Cárnicos","Norte",21,"Cumple",0.0,"Sin incidente","No",4.6,0,8,956,0.95,"Estándar"],["LF-0150","2026-05-10","U-36","León","Hermosillo","Berries","Centro",22,"Cumple",0.0,"Sin incidente","No",5.0,0,9,1093,0.89,"Consolidada"],["LF-0151","2026-05-11","U-37","CDMX","Veracruz","Lácteos","Pacífico",23,"Cumple",0.0,"Sin incidente","No",5.3,0,8,1230,0.83,"Prioritaria"],["LF-0152","2026-05-12","U-38","Guadalajara","San Luis Potosí","Congelados","Sureste",24,"Cumple",0.0,"Sin incidente","No",5.7,0,9,1367,0.94,"Estándar"],["LF-0153","2026-05-13","U-01","Monterrey","Mérida","Preparados","Norte",6,"Cumple",0.0,"Sin incidente","No",6.0,0,8,1504,0.88,"Consolidada"],["LF-0154","2026-05-14","U-02","Puebla","Toluca","Cárnicos","Centro",7,"Cumple",0.0,"Sin incidente","No",3.2,0,9,1641,0.82,"Prioritaria"],["LF-0155","2026-05-15","U-03","Querétaro","Chihuahua","Berries","Pacífico",8,"Cumple",0.0,"Sin incidente","No",3.6,0,8,1778,0.93,"Estándar"],["LF-0156","2026-05-16","U-04","León","Tijuana","Lácteos","Sureste",9,"Cumple",0.0,"Sin incidente","No",3.9,0,9,1915,0.87,"Consolidada"],["LF-0157","2026-05-17","U-05","CDMX","Cancún","Congelados","Norte",10,"Cumple",0.0,"Sin incidente","No",4.3,0,8,2052,0.98,"Prioritaria"],["LF-0158","2026-05-18","U-06","Guadalajara","Hermosillo","Preparados","Centro",11,"Cumple",0.0,"Sin incidente","No",4.6,0,9,2189,0.92,"Estándar"],["LF-0159","2026-05-19","U-07","Monterrey","Veracruz","Cárnicos","Pacífico",12,"Cumple",0.0,"Sin incidente","No",5.0,0,8,2326,0.86,"Consolidada"],["LF-0160","2026-05-20","U-08","Puebla","San Luis Potosí","Berries","Sureste",13,"Cumple",0.0,"Sin incidente","No",5.3,0,9,2463,0.97,"Prioritaria"],["LF-0161","2026-06-21","U-09","Querétaro","Mérida","Lácteos","Norte",14,"Cumple",0.0,"Sin incidente","No",5.7,0,8,2600,0.91,"Estándar"],["LF-0162","2026-06-22","U-10","León","Toluca","Congelados","Centro",15,"Cumple",0.0,"Sin incidente","No",6.0,0,9,2737,0.85,"Consolidada"],["LF-0163","2026-06-23","U-11","CDMX","Chihuahua","Preparados","Pacífico",16,"Cumple",0.0,"Sin incidente","No",3.2,0,8,2874,0.96,"Prioritaria"],["LF-0164","2026-06-24","U-12","Guadalajara","Tijuana","Cárnicos","Sureste",17,"Cumple",0.0,"Sin incidente","No",3.6,0,9,531,0.9,"Estándar"],["LF-0165","2026-06-25","U-13","Monterrey","Cancún","Berries","Norte",18,"Cumple",0.0,"Sin incidente","No",3.9,0,8,668,0.84,"Consolidada"],["LF-0166","2026-06-26","U-14","Puebla","Hermosillo","Lácteos","Centro",19,"Cumple",0.0,"Sin incidente","No",4.3,0,9,805,0.95,"Prioritaria"],["LF-0167","2026-06-27","U-15","Querétaro","Veracruz","Congelados","Pacífico",20,"Cumple",0.0,"Sin incidente","No",4.6,0,8,942,0.89,"Estándar"],["LF-0168","2026-06-28","U-16","León","San Luis Potosí","Preparados","Sureste",21,"Cumple",0.0,"Sin incidente","No",5.0,0,9,1079,0.83,"Consolidada"],["LF-0169","2026-06-01","U-17","CDMX","Mérida","Cárnicos","Norte",22,"Cumple",0.0,"Sin incidente","No",5.3,10400,8,1216,0.94,"Prioritaria"],["LF-0170","2026-06-02","U-18","Guadalajara","Toluca","Berries","Centro",23,"Cumple",0.0,"Sin incidente","No",5.7,0,9,1353,0.88,"Estándar"],["LF-0171","2026-06-03","U-19","Monterrey","Chihuahua","Lácteos","Pacífico",24,"Cumple",0.0,"Sin incidente","No",6.0,0,8,1490,0.82,"Consolidada"],["LF-0172","2026-06-04","U-20","Puebla","Tijuana","Congelados","Sureste",6,"Cumple",0.0,"Sin incidente","No",3.2,0,9,1627,0.93,"Prioritaria"],["LF-0173","2026-06-05","U-21","Querétaro","Cancún","Preparados","Norte",7,"Cumple",0.0,"Sin incidente","No",3.6,0,8,1764,0.87,"Estándar"],["LF-0174","2026-06-06","U-22","León","Hermosillo","Cárnicos","Centro",8,"Cumple",0.0,"Sin incidente","No",3.9,0,9,1901,0.98,"Consolidada"],["LF-0175","2026-06-07","U-23","CDMX","Veracruz","Berries","Pacífico",9,"Cumple",0.0,"Sin incidente","No",4.3,0,8,2038,0.92,"Prioritaria"],["LF-0176","2026-06-08","U-24","Guadalajara","San Luis Potosí","Lácteos","Sureste",10,"Cumple",0.0,"Sin incidente","No",4.6,0,9,2175,0.86,"Estándar"],["LF-0177","2026-06-09","U-25","Monterrey","Mérida","Congelados","Norte",11,"Cumple",0.0,"Sin incidente","No",5.0,0,8,2312,0.97,"Consolidada"],["LF-0178","2026-06-10","U-26","Puebla","Toluca","Preparados","Centro",12,"Cumple",0.0,"Sin incidente","No",5.3,0,9,2449,0.91,"Prioritaria"],["LF-0179","2026-06-11","U-27","Querétaro","Chihuahua","Cárnicos","Pacífico",13,"Cumple",0.0,"Sin incidente","No",5.7,0,8,2586,0.85,"Estándar"],["LF-0180","2026-06-12","U-28","León","Tijuana","Berries","Sureste",14,"Cumple",0.0,"Sin incidente","No",6.0,0,9,2723,0.96,"Consolidada"],["LF-0181","2026-06-13","U-29","CDMX","Cancún","Lácteos","Norte",15,"Cumple",0.0,"Sin incidente","No",3.2,0,8,2860,0.9,"Prioritaria"],["LF-0182","2026-06-14","U-30","Guadalajara","Hermosillo","Congelados","Centro",16,"Cumple",0.0,"Sin incidente","No",3.6,0,9,2997,0.84,"Estándar"],["LF-0183","2026-06-15","U-31","Monterrey","Veracruz","Preparados","Pacífico",17,"Cumple",0.0,"Sin incidente","No",3.9,0,8,654,0.95,"Consolidada"],["LF-0184","2026-06-16","U-32","Puebla","San Luis Potosí","Cárnicos","Sureste",18,"Cumple",0.0,"Sin incidente","No",4.3,0,9,791,0.89,"Prioritaria"],["LF-0185","2026-06-17","U-33","Querétaro","Mérida","Berries","Norte",19,"No cumple",25.0,"Sin incidente","No",4.6,0,8,928,0.83,"Estándar"],["LF-0186","2026-06-18","U-34","León","Toluca","Lácteos","Centro",20,"No cumple",42.0,"Sin incidente","No",5.0,0,9,1065,0.94,"Consolidada"],["LF-0187","2026-06-19","U-35","CDMX","Chihuahua","Congelados","Pacífico",21,"No cumple",59.0,"Sin incidente","No",5.3,0,8,1202,0.88,"Prioritaria"],["LF-0188","2026-06-20","U-36","Guadalajara","Tijuana","Preparados","Sureste",22,"No cumple",76.0,"Sin incidente","No",5.7,0,9,1339,0.82,"Estándar"],["LF-0189","2026-06-21","U-37","Monterrey","Cancún","Cárnicos","Norte",23,"No cumple",38.0,"Sin incidente","No",6.0,0,8,1476,0.93,"Consolidada"],["LF-0190","2026-06-22","U-38","Puebla","Hermosillo","Berries","Centro",24,"No cumple",55.0,"Sin incidente","No",3.2,0,9,1613,0.87,"Prioritaria"],["LF-0191","2026-06-23","U-01","Querétaro","Veracruz","Lácteos","Pacífico",6,"No cumple",72.0,"Sin incidente","No",3.6,0,8,1750,0.98,"Estándar"],["LF-0192","2026-06-24","U-02","León","San Luis Potosí","Congelados","Sureste",7,"No cumple",34.0,"Sin incidente","No",3.9,0,9,1887,0.92,"Consolidada"],["LF-0193","2026-06-25","U-03","CDMX","Mérida","Preparados","Norte",8,"No cumple",51.0,"Sin incidente","No",4.3,0,8,2024,0.86,"Prioritaria"],["LF-0194","2026-06-26","U-04","Guadalajara","Toluca","Cárnicos","Centro",9,"No cumple",68.0,"Sin incidente","No",4.6,0,9,2161,0.97,"Estándar"],["LF-0195","2026-06-27","U-05","Monterrey","Chihuahua","Berries","Pacífico",10,"No cumple",30.0,"Sin incidente","No",5.0,0,8,2298,0.91,"Consolidada"],["LF-0196","2026-06-28","U-06","Puebla","Tijuana","Lácteos","Sureste",11,"No cumple",47.0,"Sin incidente","No",5.3,0,9,2435,0.85,"Prioritaria"],["LF-0197","2026-06-01","U-07","Querétaro","Cancún","Congelados","Norte",12,"No cumple",64.0,"Sin incidente","No",5.7,0,8,2572,0.96,"Estándar"],["LF-0198","2026-06-02","U-08","León","Hermosillo","Preparados","Centro",13,"No cumple",26.0,"Sin incidente","No",6.0,6500,9,2709,0.9,"Consolidada"],["LF-0199","2026-06-03","U-09","CDMX","Veracruz","Cárnicos","Pacífico",14,"No cumple",43.0,"Sin incidente","No",3.2,0,8,2846,0.84,"Prioritaria"],["LF-0200","2026-06-04","U-10","Guadalajara","San Luis Potosí","Berries","Sureste",15,"No cumple",60.0,"Sin incidente","No",3.6,0,9,2983,0.95,"Estándar"],["LF-0201","2026-06-05","U-11","Monterrey","Mérida","Lácteos","Norte",16,"No cumple",77.0,"Sin incidente","No",3.9,0,8,640,0.89,"Consolidada"],["LF-0202","2026-06-06","U-12","Puebla","Toluca","Congelados","Centro",17,"No cumple",39.0,"Sin incidente","No",4.3,0,9,777,0.83,"Prioritaria"],["LF-0203","2026-06-07","U-13","Querétaro","Chihuahua","Preparados","Pacífico",18,"No cumple",56.0,"Sin incidente","No",4.6,0,8,914,0.94,"Estándar"],["LF-0204","2026-06-08","U-14","León","Tijuana","Cárnicos","Sureste",19,"No cumple",73.0,"Sin incidente","No",5.0,0,9,1051,0.88,"Consolidada"],["LF-0205","2026-06-09","U-15","CDMX","Cancún","Berries","Norte",20,"No cumple",35.0,"Sin incidente","No",5.3,0,8,1188,0.82,"Prioritaria"],["LF-0206","2026-06-10","U-16","Guadalajara","Hermosillo","Lácteos","Centro",21,"No cumple",52.0,"Sin incidente","No",5.7,0,9,1325,0.93,"Estándar"],["LF-0207","2026-06-11","U-17","Monterrey","Veracruz","Congelados","Pacífico",22,"No cumple",69.0,"Sin incidente","No",6.0,0,8,1462,0.87,"Consolidada"],["LF-0208","2026-06-12","U-18","Puebla","San Luis Potosí","Preparados","Sureste",23,"No cumple",31.0,"Sin incidente","No",3.2,0,9,1599,0.98,"Prioritaria"],["LF-0209","2026-06-13","U-19","Querétaro","Mérida","Cárnicos","Norte",24,"No cumple",48.0,"Sin incidente","No",3.6,0,8,1736,0.92,"Estándar"],["LF-0210","2026-06-14","U-20","León","Toluca","Berries","Centro",6,"No cumple",65.0,"Sin incidente","No",3.9,0,9,1873,0.86,"Consolidada"],["LF-0211","2026-06-15","U-21","CDMX","Chihuahua","Lácteos","Pacífico",7,"No cumple",27.0,"Sin incidente","No",4.3,0,8,2010,0.97,"Prioritaria"],["LF-0212","2026-06-16","U-22","Guadalajara","Tijuana","Congelados","Sureste",8,"No cumple",44.0,"Sin incidente","No",4.6,0,9,2147,0.91,"Estándar"],["LF-0213","2026-06-17","U-23","Monterrey","Cancún","Preparados","Norte",9,"No cumple",61.0,"Sin incidente","No",5.0,0,8,2284,0.85,"Consolidada"],["LF-0214","2026-06-18","U-24","Puebla","Hermosillo","Cárnicos","Centro",10,"No cumple",78.0,"Sin incidente","No",5.3,0,9,2421,0.96,"Prioritaria"],["LF-0215","2026-06-19","U-25","Querétaro","Veracruz","Berries","Pacífico",11,"No cumple",40.0,"Sin incidente","No",5.7,0,8,2558,0.9,"Estándar"],["LF-0216","2026-06-20","U-26","León","San Luis Potosí","Lácteos","Sureste",12,"No cumple",57.0,"Sin incidente","No",6.0,0,9,2695,0.84,"Consolidada"],["LF-0217","2026-06-21","U-27","CDMX","Mérida","Congelados","Norte",13,"No cumple",74.0,"Sin incidente","No",3.2,0,8,2832,0.95,"Prioritaria"],["LF-0218","2026-06-22","U-28","Guadalajara","Toluca","Preparados","Centro",14,"No cumple",36.0,"Sin incidente","No",3.6,0,9,2969,0.89,"Estándar"],["LF-0219","2026-06-23","U-29","Monterrey","Chihuahua","Cárnicos","Pacífico",15,"No cumple",53.0,"Sin incidente","No",3.9,0,8,626,0.83,"Consolidada"],["LF-0220","2026-06-24","U-30","Puebla","Tijuana","Berries","Sureste",16,"No cumple",70.0,"Sin incidente","No",4.3,0,9,763,0.94,"Prioritaria"],["LF-0221","2026-06-25","U-31","Querétaro","Cancún","Lácteos","Norte",17,"No cumple",32.0,"Sin incidente","No",4.6,0,8,900,0.88,"Estándar"],["LF-0222","2026-06-26","U-32","León","Hermosillo","Congelados","Centro",18,"No cumple",49.0,"Sin incidente","No",5.0,0,9,1037,0.82,"Consolidada"],["LF-0223","2026-06-27","U-33","CDMX","Veracruz","Preparados","Pacífico",19,"No cumple",66.0,"Sin incidente","No",5.3,0,8,1174,0.93,"Prioritaria"],["LF-0224","2026-06-28","U-34","Guadalajara","San Luis Potosí","Cárnicos","Sureste",20,"No cumple",28.0,"Sin incidente","No",5.7,4399,9,1311,0.87,"Estándar"],["LF-0225","2026-06-01","U-35","Monterrey","Mérida","Berries","Norte",21,"No cumple",45.0,"Sin incidente","No",6.0,0,8,1448,0.98,"Consolidada"],["LF-0226","2026-06-02","U-36","Puebla","Toluca","Lácteos","Centro",22,"No cumple",62.0,"Sin incidente","No",3.2,0,9,1585,0.92,"Prioritaria"],["LF-0227","2026-06-03","U-37","Querétaro","Chihuahua","Congelados","Pacífico",23,"No cumple",79.0,"Sin incidente","No",3.6,0,8,1722,0.86,"Estándar"],["LF-0228","2026-06-04","U-38","León","Tijuana","Preparados","Sureste",24,"No cumple",41.0,"Sin incidente","No",3.9,0,9,1859,0.97,"Consolidada"],["LF-0229","2026-06-05","U-01","CDMX","Cancún","Cárnicos","Norte",6,"No cumple",58.0,"Sin incidente","No",4.3,0,8,1996,0.91,"Prioritaria"],["LF-0230","2026-06-06","U-02","Guadalajara","Hermosillo","Berries","Centro",7,"No cumple",75.0,"Sin incidente","No",4.6,0,9,2133,0.85,"Estándar"],["LF-0231","2026-06-07","U-03","Monterrey","Veracruz","Lácteos","Pacífico",8,"No cumple",37.0,"Sin incidente","No",5.0,0,8,2270,0.96,"Consolidada"],["LF-0232","2026-06-08","U-04","Puebla","San Luis Potosí","Congelados","Sureste",9,"No cumple",54.0,"Sin incidente","No",5.3,0,9,2407,0.9,"Prioritaria"],["LF-0233","2026-06-09","U-05","Querétaro","Mérida","Preparados","Norte",10,"No cumple",71.0,"Sin incidente","No",5.7,0,8,2544,0.84,"Estándar"],["LF-0234","2026-06-10","U-06","León","Toluca","Cárnicos","Centro",11,"No cumple",33.0,"Sin incidente","No",6.0,0,9,2681,0.95,"Consolidada"],["LF-0235","2026-06-11","U-07","CDMX","Chihuahua","Berries","Pacífico",12,"No cumple",50.0,"Sin incidente","No",3.2,0,8,2818,0.89,"Prioritaria"],["LF-0236","2026-06-12","U-08","Guadalajara","Tijuana","Lácteos","Sureste",13,"No cumple",67.0,"Sin incidente","No",3.6,0,9,2955,0.83,"Estándar"],["LF-0237","2026-06-13","U-09","Monterrey","Cancún","Congelados","Norte",14,"No cumple",29.0,"Sin incidente","No",3.9,0,8,612,0.94,"Consolidada"],["LF-0238","2026-06-14","U-10","Puebla","Hermosillo","Preparados","Centro",15,"No cumple",46.0,"Sin incidente","No",4.3,0,9,749,0.88,"Prioritaria"],["LF-0239","2026-06-15","U-11","Querétaro","Veracruz","Cárnicos","Pacífico",16,"No cumple",63.0,"Sin incidente","No",4.6,0,8,886,0.82,"Estándar"],["LF-0240","2026-06-16","U-12","León","San Luis Potosí","Berries","Sureste",17,"No cumple",40.8,"Sin incidente","No",5.0,0,9,1023,0.93,"Consolidada"]]};
+const C = {}; DATA.cols.forEach((c,i)=>C[c]=i);
+const ROWS = DATA.rows;
+const T='#B4552D', TL='#D98A64', OK='#4F7A54', INK='#33251E', SAND='#EDE0D4';
+
+const FILTERS = [
+  ['f_mes','Mes', r=>r[C.fecha_salida].slice(0,7)],
+  ['f_transportista','Transportista', r=>r[C.transportista]],
+  ['f_ruta','Tipo de ruta', r=>r[C.tipo_ruta]],
+  ['f_producto','Producto', r=>r[C.producto]],
+  ['f_origen','Origen', r=>r[C.origen]],
+  ['f_destino','Destino', r=>r[C.destino]],
+  ['f_incidente','Incidente', r=>r[C.tipo_incidente]],
+  ['f_sla','Estatus SLA', r=>r[C.sla_entrega]]
+];
+const MESN={'2026-04':'Abril 2026','2026-05':'Mayo 2026','2026-06':'Junio 2026'};
+
+FILTERS.forEach(([id,label,fn])=>{
+  const sel=document.getElementById(id);
+  const vals=[...new Set(ROWS.map(fn))].sort();
+  sel.innerHTML='<option value="">Todos</option>'+vals.map(v=>`<option value="${v}">${MESN[v]||v}</option>`).join('');
+  sel.addEventListener('change',render);
+});
+document.getElementById('reset').addEventListener('click',()=>{FILTERS.forEach(([id])=>document.getElementById(id).value='');render();});
+
+function filtered(){
+  return ROWS.filter(r=>FILTERS.every(([id,l,fn])=>{const v=document.getElementById(id).value;return !v||fn(r)===v;}));
+}
+const n0=x=>x.toLocaleString('es-MX',{maximumFractionDigits:0});
+const n1=x=>x.toLocaleString('es-MX',{minimumFractionDigits:1,maximumFractionDigits:1});
+const mxn=x=>'$'+x.toLocaleString('es-MX',{maximumFractionDigits:0});
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+function stats(rs){
+  const n=rs.length;
+  if(!n) return {n:0};
+  const ok=rs.filter(r=>r[C.sla_entrega]==='Cumple').length;
+  const late=rs.filter(r=>r[C.retraso_min]>0);
+  return {
+    n, sla: ok/n*100,
+    late: late.length ? late.reduce((a,r)=>a+r[C.retraso_min],0)/late.length : null,
+    lateN: late.length,
+    inc: rs.filter(r=>r[C.tipo_incidente]!=='Sin incidente').length,
+    exc: rs.filter(r=>r[C.excursion_temp_mayor_8c]==='Sí').length,
+    recl: rs.reduce((a,r)=>a+r[C.reclamacion_mxn],0),
+    reclN: rs.filter(r=>r[C.reclamacion_mxn]>0).length,
+    sat: rs.reduce((a,r)=>a+r[C.satisfaccion_1_10],0)/n
+  };
+}
+
+function renderKPIs(s){
+  const el=document.getElementById('kpis');
+  if(!s.n){el.innerHTML='<div class="empty" style="grid-column:1/-1">Sin datos para esta combinación de filtros. Ajusta o restablece los filtros.</div>';return;}
+  const gap=s.sla-90;
+  const slaBadge = gap>=0 ? '<span class="badge b-ok">Meta cumplida</span>' : `<span class="badge b-bad">${n1(gap)} pts vs meta</span>`;
+  el.innerHTML=`
+  <div class="kpi"><div class="lab">Embarques</div><div class="val">${n0(s.n)}</div><div class="un">registros en el filtro</div><div class="note">${n0(ROWS.length)} en total sin filtros</div></div>
+  <div class="kpi ${s.sla<90?'k-alert':''}"><div class="lab">Cumplimiento de SLA</div><div class="val">${n1(s.sla)}%${slaBadge}</div><div class="un">meta institucional: 90%</div>
+    <div class="slabar"><div class="track"><div class="fill" style="width:${Math.min(100,s.sla)}%"></div><div class="goal" style="left:90%"></div></div></div></div>
+  <div class="kpi"><div class="lab">Retraso promedio</div><div class="val">${s.late===null?'—':n1(s.late)}</div><div class="un">minutos · solo embarques tardíos</div><div class="note">${n0(s.lateN)} embarques con retraso &gt; 0</div></div>
+  <div class="kpi"><div class="lab">Incidentes</div><div class="val">${n0(s.inc)}</div><div class="un">registros con incidente</div><div class="note">${n1(s.inc/s.n*100)}% de los embarques filtrados</div></div>
+  <div class="kpi ${s.exc?'k-alert':''}"><div class="lab">Excursiones &gt; 8 °C</div><div class="val">${n0(s.exc)}</div><div class="un">rupturas de cadena de frío</div><div class="note">umbral operativo: 8 °C</div></div>
+  <div class="kpi"><div class="lab">Reclamaciones</div><div class="val">${mxn(s.recl)}</div><div class="un">MXN acumulados</div><div class="note">concentradas en ${n0(s.reclN)} embarque(s)</div></div>
+  <div class="kpi"><div class="lab">Satisfacción</div><div class="val">${n1(s.sat)}</div><div class="un">promedio, escala 1–10</div><div class="note">percepción declarada, no indicador duro</div></div>`;
+}
+
+function svg(w,h,inner,title){return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(title)}">${inner}</svg>`;}
+function noData(id,msg){document.getElementById(id).innerHTML=`<div class="empty">${msg||'Sin datos con los filtros actuales.'}</div>`;}
+
+function barsH(id,items,fmt,color,maxOverride,goal){
+  if(!items.length){noData(id);return;}
+  const W=460,rh=30,pad=8,L=112,R=64,h=items.length*rh+pad*2+(goal?16:0);
+  const max=maxOverride||Math.max(...items.map(d=>d.v),1);
+  const gy=goal?14:0;
+  let s='';
+  if(goal){const gx=L+(goal/max)*(W-L-R);s+=`<line x1="${gx}" y1="4" x2="${gx}" y2="${h-pad}" stroke="${INK}" stroke-width="1.5" stroke-dasharray="4 3"/><text x="${gx}" y="10" text-anchor="middle" class="gval">Meta ${goal}%</text>`;}
+  items.forEach((d,i)=>{
+    const y=pad+gy+i*rh, bw=Math.max(1,(d.v/max)*(W-L-R));
+    s+=`<text x="${L-8}" y="${y+15}" text-anchor="end" class="gtxt">${esc(d.k)}</text>`;
+    s+=`<rect x="${L}" y="${y+4}" width="${bw}" height="17" rx="3" fill="${typeof color==='function'?color(d):color}"/>`;
+    s+=`<text x="${L+bw+7}" y="${y+17}" class="gval">${fmt(d.v)}</text>`;
+  });
+  document.getElementById(id).innerHTML=svg(W,h,s,'Gráfica de barras');
+}
+
+function renderCharts(rs){
+  // SLA por mes
+  const meses=['2026-04','2026-05','2026-06'].filter(m=>rs.some(r=>r[C.fecha_salida].startsWith(m)));
+  const im=meses.map(m=>{const g=rs.filter(r=>r[C.fecha_salida].startsWith(m));
+    return {k:MESN[m].replace(' 2026',''),v:g.filter(r=>r[C.sla_entrega]==='Cumple').length/g.length*100,n:g.length};});
+  barsH('c_mes',im,v=>n1(v)+'%',d=>d.v>=90?OK:T,100,90);
+
+  // SLA por transportista
+  const ts=[...new Set(rs.map(r=>r[C.transportista]))].sort();
+  const it=ts.map(t=>{const g=rs.filter(r=>r[C.transportista]===t);
+    return {k:t,v:g.filter(r=>r[C.sla_entrega]==='Cumple').length/g.length*100};}).sort((a,b)=>a.v-b.v);
+  barsH('c_transp',it,v=>n1(v)+'%',d=>d.v>=90?OK:T,100,90);
+
+  // Histograma retraso
+  const late=rs.filter(r=>r[C.retraso_min]>0).map(r=>r[C.retraso_min]);
+  if(!late.length){noData('c_hist','No hay embarques con retraso en esta selección.');}
+  else{
+    const bins=[[1,20],[21,40],[41,60],[61,80]];
+    barsH('c_hist',bins.map(([a,b])=>({k:`${a}–${b} min`,v:late.filter(x=>x>=a&&x<=b).length})),n0,TL);
+  }
+
+  // Incidentes
+  const tipos=[...new Set(rs.map(r=>r[C.tipo_incidente]))].filter(t=>t!=='Sin incidente');
+  const ii=tipos.map(t=>({k:t,v:rs.filter(r=>r[C.tipo_incidente]===t).length})).sort((a,b)=>b.v-a.v);
+  if(!ii.length) noData('c_inc','Ningún incidente registrado en esta selección.');
+  else barsH('c_inc',ii,n0,T);
+
+  // Scatter temperatura
+  (function(){
+    if(!rs.length){noData('c_temp');return;}
+    const W=460,H=210,L=38,R=10,Tp=12,B=28;
+    const xs=rs.map(r=>new Date(r[C.fecha_salida]).getTime());
+    const x0=Math.min(...xs),x1=Math.max(...xs)||x0+1;
+    const ymax=Math.max(13,Math.ceil(Math.max(...rs.map(r=>r[C.temperatura_max_c]))));
+    const px=v=>L+((v-x0)/((x1-x0)||1))*(W-L-R);
+    const py=v=>Tp+(1-v/ymax)*(H-Tp-B);
+    let s='';
+    for(let g=0;g<=ymax;g+=3){s+=`<line x1="${L}" y1="${py(g)}" x2="${W-R}" y2="${py(g)}" class="gline"/><text x="${L-6}" y="${py(g)+4}" text-anchor="end" class="gtxt">${g}</text>`;}
+    s+=`<line x1="${L}" y1="${py(8)}" x2="${W-R}" y2="${py(8)}" stroke="${T}" stroke-width="1.5" stroke-dasharray="5 3"/><text x="${W-R}" y="${py(8)-5}" text-anchor="end" class="gval" fill="${T}">Umbral 8 °C</text>`;
+    rs.forEach(r=>{const over=r[C.temperatura_max_c]>8;
+      s+=`<circle cx="${px(new Date(r[C.fecha_salida]).getTime()).toFixed(1)}" cy="${py(r[C.temperatura_max_c]).toFixed(1)}" r="${over?4:2.6}" fill="${over?T:'#A08B7C'}" fill-opacity="${over?.95:.45}"/>`;});
+    s+=`<line x1="${L}" y1="${H-B}" x2="${W-R}" y2="${H-B}" class="gline"/>`;
+    s+=`<text x="${L}" y="${H-10}" class="gtxt">${new Date(x0).toISOString().slice(0,10)}</text><text x="${W-R}" y="${H-10}" text-anchor="end" class="gtxt">${new Date(x1).toISOString().slice(0,10)}</text>`;
+    s+=`<text x="8" y="${Tp+8}" class="gtxt">°C</text>`;
+    document.getElementById('c_temp').innerHTML=svg(W,H,s,'Temperatura máxima por embarque');
+  })();
+
+  // Pareto reclamaciones
+  (function(){
+    const v=rs.map(r=>r[C.reclamacion_mxn]).filter(x=>x>0).sort((a,b)=>b-a);
+    if(!v.length){noData('c_pareto','Sin reclamaciones registradas en esta selección.');return;}
+    const tot=v.reduce((a,b)=>a+b,0);
+    const W=460,H=210,L=44,R=34,Tp=12,B=30;
+    const bw=(W-L-R)/v.length, max=v[0];
+    let s='',cum=0,pts=[];
+    v.forEach((x,i)=>{const bh=(x/max)*(H-Tp-B);
+      s+=`<rect x="${(L+i*bw).toFixed(1)}" y="${(H-B-bh).toFixed(1)}" width="${Math.max(1.5,bw-1.5).toFixed(1)}" height="${bh.toFixed(1)}" fill="${T}" rx="1"/>`;
+      cum+=x; pts.push([L+i*bw+bw/2,Tp+(1-cum/tot)*(H-Tp-B)]);});
+    s+=`<polyline points="${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}" fill="none" stroke="${INK}" stroke-width="1.8"/>`;
+    pts.forEach(p=>s+=`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.4" fill="${INK}"/>`);
+    [0,50].forEach(p=>{const y=Tp+(1-p/100)*(H-Tp-B);s+=`<text x="${W-R+6}" y="${y+4}" class="gtxt">${p}%</text>`;});
+    s+=`<text x="${W-R+6}" y="${Tp+10}" class="gtxt">100%</text>`;
+    s+=`<line x1="${L}" y1="${H-B}" x2="${W-R}" y2="${H-B}" class="gline"/>`;
+    s+=`<text x="${L-6}" y="${Tp+8}" text-anchor="end" class="gtxt">${mxn(max)}</text>`;
+    s+=`<text x="${L}" y="${H-10}" class="gtxt">${v.length} embarque(s) con reclamación · total ${mxn(tot)}</text>`;
+    s+=`<text x="${W-R+6}" y="${Tp-4}" class="gtxt">% acum.</text>`;
+    document.getElementById('c_pareto').innerHTML=svg(W,H,s,'Concentración de reclamaciones');
+  })();
+}
+
+function renderTabla(rs){
+  const el=document.getElementById('tabla');
+  if(!rs.length){el.innerHTML='<div class="empty">Sin registros para mostrar.</div>';return;}
+  const ts=[...new Set(rs.map(r=>r[C.transportista]))];
+  const rows=ts.map(t=>{const g=rs.filter(r=>r[C.transportista]===t);const s=stats(g);return {t,s};})
+    .sort((a,b)=>b.s.recl-a.s.recl);
+  el.innerHTML=`<table><caption class="sr">Desempeño por transportista según los filtros activos</caption>
+  <thead><tr><th scope="col">Transportista</th><th scope="col">Embarques</th><th scope="col">SLA %</th><th scope="col">Retraso prom. (min)</th><th scope="col">Incidentes</th><th scope="col">Exc. &gt;8 °C</th><th scope="col">Reclamaciones (MXN)</th><th scope="col">Satisfacción</th></tr></thead>
+  <tbody>${rows.map(({t,s})=>`<tr><th scope="row">${esc(t)}</th><td class="num">${n0(s.n)}</td><td class="num" style="color:${s.sla<90?'#8A3F20':'#3D5F41'};font-weight:700">${n1(s.sla)}%</td><td class="num">${s.late===null?'—':n1(s.late)}</td><td class="num">${n0(s.inc)}</td><td class="num">${n0(s.exc)}</td><td class="num">${mxn(s.recl)}</td><td class="num">${n1(s.sat)}</td></tr>`).join('')}</tbody></table>`;
+}
+
+function renderChips(rs){
+  const act=FILTERS.map(([id,label])=>{const v=document.getElementById(id).value;return v?`<span class="chip">${label}: ${esc(MESN[v]||v)}</span>`:null;}).filter(Boolean);
+  document.getElementById('chips').innerHTML=
+    `<span class="count">${n0(rs.length)} de ${n0(ROWS.length)} embarques</span>`+
+    (act.length?act.join(''):'<span>Sin filtros activos · vista completa</span>');
+}
+
+function render(){
+  const rs=filtered();
+  renderChips(rs); renderKPIs(stats(rs)); renderCharts(rs); renderTabla(rs);
+}
+render();
+window.__test = {stats, filtered, ROWS, C};
+</script>
+</body>
+</html>
